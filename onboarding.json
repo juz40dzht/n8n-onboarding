@@ -1,0 +1,195 @@
+{
+  "name": "Onboarding via Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"]
+      },
+      "id": "Telegram Trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "text",
+              "value": "={{$json.message.text.toLowerCase()}}"
+            },
+            {
+              "name": "name",
+              "value": "={{$json.message.text.split(' ')[1]}}"
+            }
+          ]
+        }
+      },
+      "id": "Set",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.text.includes('hire')}}"
+            }
+          ]
+        }
+      },
+      "id": "IF",
+      "name": "If Hire",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "json": [
+            {
+              "name": "tasks",
+              "value": "[{\"day\":1,\"task\":\"Introduction\"},{\"day\":2,\"task\":\"Meet team\"},{\"day\":3,\"task\":\"Setup tools\"},{\"day\":7,\"task\":\"First lesson\"},{\"day\":30,\"task\":\"Evaluation\"}]"
+            }
+          ]
+        }
+      },
+      "id": "Set Tasks",
+      "name": "Create Tasks",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "tasks"
+      },
+      "id": "Split",
+      "name": "Split Tasks",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create"
+      },
+      "id": "Notion",
+      "name": "Create Notion Task",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [1200, 200]
+    },
+    {
+      "parameters": {
+        "resume": "specificTime",
+        "dateTime": "={{$now.plus({days: $json.day})}}"
+      },
+      "id": "Wait",
+      "name": "Wait Until Day",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1400, 200]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "text": "={{`Reminder: Day ${$json.day} - ${$json.task}`}}"
+      },
+      "id": "Telegram",
+      "name": "Send Reminder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1600, 200]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If Hire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Hire": {
+      "main": [
+        [
+          {
+            "node": "Create Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Create Tasks": {
+      "main": [
+        [
+          {
+            "node": "Split Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Tasks": {
+      "main": [
+        [
+          {
+            "node": "Create Notion Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notion Task": {
+      "main": [
+        [
+          {
+            "node": "Wait Until Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Until Day": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
